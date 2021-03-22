@@ -1,5 +1,7 @@
 var request = require('request');
 
+var telegram = require('./telegram/send').telegram;
+
 var customToken = {
     KLAYTN: '0x0000000000000000000000000000000000000000',
     BBC: '0x321bc0b63efb1e4af08ec6d20c85d5e94ddaaa18',
@@ -12,11 +14,6 @@ var URLS = {
     TOKEN: 'https://stat.klayswap.com/token.json',
     RECENT: 'https://stat.klayswap.com/recentPoolStatus.json'
 }
-
-var options = {
-    url: 'https://stat.klayswap.com/token.json',
-    method: 'GET'
-};
 
 var promise = new Promise(function(resolve, reject) {
     request({
@@ -53,8 +50,7 @@ promise.then(function(tokenList) {
     function(e, response, body) {
         var result = jsonParser(body);
         var recentData = result.data;
-
-        console.log(tokenList);
+        var message = '';
 
         recentData.forEach(recent => {
             var tokenA = recent.tokenA.toLowerCase();
@@ -66,33 +62,34 @@ promise.then(function(tokenList) {
             var gap = amountA / amountB;
             var gap2 = amountB / amountA;
 
+            var nameA;
+            var nameB;
+
             if (isNaN(gap) || isNaN(gap2)) {
-                gap = '물량 없음';
-                gap2 = '물량 없음'
+                gap = 'none amount';
+                gap2 = 'none amount'
+            } else {
+                gap = gap.toFixed(8);
+                gap2 = gap2.toFixed(8);
             }
 
             if (tokenList[tokenA] && tokenList[tokenB]) {
-                console.log(tokenList[tokenA].name);
-                console.log(tokenList[tokenB].name);
-                console.log('gap => A to B: ', gap, ', B to A: ', gap2);
-                console.log('--------');
+                nameA = tokenList[tokenA].name;
+                nameB = tokenList[tokenB].name;
             } else if(!tokenList[tokenA] && tokenList[tokenB]) {
-                console.log(tokenA);
-                console.log(tokenList[tokenB].name);
-                console.log('gap => A to B: ', gap, ', B to A: ', gap2);
-                console.log('--------');
+                nameA = tokenA;
+                nameB = tokenList[tokenB].name;
             } else if(tokenList[tokenA] && !tokenList[tokenB]) {
-                console.log(tokenList[tokenA].name);
-                console.log(tokenB);
-                console.log('gap => A to B: ', gap, ', B to A: ', gap2);
-                console.log('--------');
+                nameA = tokenList[tokenA].name;
+                nameB = tokenB;
             } else {
-                console.log(tokenA);
-                console.log(tokenB);
-                console.log('gap => A to B: ', gap, ', B to A: ', gap2);
-                console.log('--------');
+                nameA = tokenA;
+                nameB = tokenB;
             }
+
+            message += nameA.toUpperCase() + ' / ' + nameB.toUpperCase() + '\n A to B: ' + gap + '\n B to A: ' + gap2 + '\n-------------------------\n'
         });
+        telegram.send(message);
     });
 })
 
